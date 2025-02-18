@@ -62,25 +62,21 @@
 
     data.forEach((d) => {
       const [minutes, seconds] = d.Time.split(":").map(Number);
-      d.TimeParsed = new Date(0, 0, 0, 0, minutes, seconds);
+      d.TimeParsed = new Date(Date.UTC(1970, 0, 1, 0, minutes, seconds));
     });
 
-    // console.log(data.map((d) => d.Year));
+    const years = data.map((d) => d.Year);
+    const uniqueYears = [...new Set(years)].sort();
+    const timeExtends = d3.extent(data, (d) => d.TimeParsed);
 
     const x = d3
       .scaleLinear()
-      .domain([
-        d3.min(data.map((d) => d.Year)) - 1,
-        d3.max(data.map((d) => d.Year)) + 1,
-      ])
+      .domain([d3.min(uniqueYears) - 1, d3.max(uniqueYears)])
       .range([MARGIN.left, WIDTH - MARGIN.right]);
 
     const y = d3
       .scaleTime()
-      .domain([
-        d3.timeSecond.offset(d3.max(data.map((d) => d.TimeParsed)), 10),
-        d3.min(data.map((d) => d.TimeParsed)),
-      ])
+      .domain([timeExtends[1], timeExtends[0]])
       .range([HEIGHT - MARGIN.bottom, MARGIN.top]);
 
     const svg = d3.create("svg").attr("width", WIDTH).attr("height", HEIGHT);
@@ -96,19 +92,18 @@
       .append("g")
       .attr("id", "x-axis")
       .attr("transform", `translate(0, ${HEIGHT - MARGIN.bottom})`)
-      .call(d3.axisBottom(x));
+      .call(d3.axisBottom(x).tickFormat(d3.format("d")));
 
     // add y-axis
     svg
       .append("g")
       .attr("id", "y-axis")
       .attr("transform", `translate(${MARGIN.left}, 0)`)
-      .call(d3.axisLeft(y).tickFormat((d) => d3.timeFormat("%M:%S")(d)));
+      .call(d3.axisLeft(y).tickFormat(d3.timeFormat("%M:%S")));
 
     // add circle
     svg
       .append("g")
-      .attr("fill", "steelblue")
       .selectAll("circle")
       .data(data)
       .enter()
@@ -118,11 +113,12 @@
       .attr("cy", (d) => y(d.TimeParsed))
       .attr("r", 5)
       .attr("data-xvalue", (d) => d.Year)
-      .attr("data-yvalue", (d) => new Date(d.Year).toISOString())
+      .attr("data-yvalue", (d) => new Date(d.TimeParsed).toISOString())
       .attr("fill", (d) => (d.Doping ? COLORS.secondary : COLORS.primary))
       .style("cursor", "pointer")
       .on("mouseover", (e, d) => {
         tooltip
+          .attr("data-year", d.Year)
           .style("opacity", 1)
           .style("left", `${e.pageX + 5}px`)
           .style(
@@ -130,10 +126,10 @@
             d.Doping ? COLORS.secondary : COLORS.primary
           )
           .style("top", `${e.pageY + 20}px`).html(`
-            <span><strong>${d.Name}</strong>: ${d.Nationality}</span>
-            <span>Year: ${d.Year}, Time: ${d.Time}</span>
-            <em>${d?.Doping}</em>
-          `);
+              <span><strong>${d.Name}</strong>: ${d.Nationality}</span>
+              <span>Year: ${d.Year}, Time: ${d.Time}</span>
+              <em>${d?.Doping}</em>
+            `);
       })
       .on("mouseout", () => tooltip.style("opacity", 0));
 
