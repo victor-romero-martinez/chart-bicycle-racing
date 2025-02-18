@@ -71,7 +71,7 @@
 
     const x = d3
       .scaleLinear()
-      .domain([d3.min(uniqueYears) - 1, d3.max(uniqueYears)])
+      .domain([d3.min(uniqueYears) - 1, d3.max(uniqueYears) + 1])
       .range([MARGIN.left, WIDTH - MARGIN.right]);
 
     const y = d3
